@@ -5,7 +5,7 @@ variable "containerRegistry" {
 }
 
 module "containerRegistry" {
-  source = "/home/max/devops/modules/terraform-azurerm-caf-container-registry"
+  source = "github.com/canada-ca-terraform-modules/terraform-azurerm-caf-container-registry.git?ref=v1.0.0"
   for_each = var.containerRegistry
 
   userDefinedString = each.key
