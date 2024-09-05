@@ -74,3 +74,17 @@ module "private_endpoint" {
   private_dns_zone_ids = var.private_dns_zone_ids
   tags = var.tags
 }
+
+resource "azurerm_user_assigned_identity" "identity" {
+  location = var.location
+  name = "${local.container_registry-name}-AcrPull"
+  resource_group_name = local.resource_group_name
+  tags = var.tags
+}
+
+
+resource "azurerm_role_assignment" "name" {
+  scope = azurerm_container_registry.registry.id
+  role_definition_name = "AcrPull"
+  principal_id = azurerm_user_assigned_identity.identity.principal_id
+}
