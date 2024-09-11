@@ -76,6 +76,7 @@ module "private_endpoint" {
 }
 
 resource "azurerm_user_assigned_identity" "identity" {
+  count = try(var.container_registry.user_identity_enabled, true) ? 1 : 0
   location = var.location
   name = "${local.container_registry-name}-AcrPull"
   resource_group_name = local.resource_group_name
@@ -84,7 +85,8 @@ resource "azurerm_user_assigned_identity" "identity" {
 
 
 resource "azurerm_role_assignment" "name" {
+  count = try(var.container_registry.user_identity_enabled, true) ? 1 : 0
   scope = azurerm_container_registry.registry.id
   role_definition_name = "AcrPull"
-  principal_id = azurerm_user_assigned_identity.identity.principal_id
+  principal_id = azurerm_user_assigned_identity.identity[0].principal_id
 }

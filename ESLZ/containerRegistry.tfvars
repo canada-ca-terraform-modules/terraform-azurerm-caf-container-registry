@@ -3,6 +3,7 @@ containerRegistry = {
   sku                           = "Premium"
   admin_enabled                 = false
   public_network_access_enabled = false
+  # user_identity_enabled = true
   # quarantine_policy_enabled = null 
   # retention_policy_in_days = 90 
   # trust_policy_enabled = false 
