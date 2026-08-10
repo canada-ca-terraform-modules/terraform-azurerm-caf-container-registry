@@ -294,3 +294,32 @@ run "trust_policy_enabled_ignored" {
     error_message = "Legacy trust_policy_enabled key must be silently ignored (removed from azurerm >= 5.0), plan must still succeed"
   }
 }
+
+run "basic_sku_no_network_rule_set" {
+  command = plan
+  variables {
+    container_registry = {
+      resource_group = "rg-test"
+      sku            = "Basic"
+    }
+  }
+  assert {
+    condition     = length(azurerm_container_registry.registry.network_rule_set) == 0
+    error_message = "network_rule_set must not be rendered for non-Premium SKUs (Basic/Standard)"
+  }
+}
+
+run "export_policy_defaults_match_public_network" {
+  command = plan
+  variables {
+    container_registry = {
+      resource_group = "rg-test"
+      # public_network_access_enabled defaults to false; export_policy_enabled must also
+      # default to false to avoid the API constraint that requires them to match.
+    }
+  }
+  assert {
+    condition     = azurerm_container_registry.registry.export_policy_enabled == false
+    error_message = "export_policy_enabled must default to false when public_network_access_enabled defaults to false"
+  }
+}

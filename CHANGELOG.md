@@ -19,6 +19,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `network_rule_set.default_action` is now overridable via
   `container_registry.network_rule_set.default_action` (previously hardcoded to `"Deny"`;
   default unchanged).
+- `network_rule_set` block is now a `dynamic` block rendered only when `sku = "Premium"`
+  (the default). Basic and Standard SKUs no longer receive a `network_rule_set` block that
+  the Azure API would reject.
+- `export_policy_enabled` now defaults to `false` when `public_network_access_enabled` is
+  `false` (the module default), satisfying the Azure API constraint that the two flags must
+  match. Callers who set `public_network_access_enabled = true` will continue to receive
+  `export_policy_enabled = true` unless they override it.
 
 ### Fixed
 

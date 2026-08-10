@@ -10,7 +10,7 @@ resource "azurerm_container_registry" "registry" {
   quarantine_policy_enabled     = try(var.container_registry.quarantine_policy_enabled, null)
   retention_policy_in_days      = try(var.container_registry.retention_policy_in_days, 90)
   zone_redundancy_enabled       = try(var.container_registry.zone_redundancy_enabled, true)
-  export_policy_enabled         = try(var.container_registry.export_policy_enabled, true)
+  export_policy_enabled         = try(var.container_registry.export_policy_enabled, try(var.container_registry.public_network_access_enabled, false))
   anonymous_pull_enabled        = try(var.container_registry.anonymous_pull_enabled, false)
   data_endpoint_enabled         = try(var.container_registry.data_endpoint_enabled, null)
   network_rule_bypass_option    = try(var.container_registry.network_rule_bypass_option, "AzureServices")
@@ -22,13 +22,16 @@ resource "azurerm_container_registry" "registry" {
   # retirement) — no longer passed to the resource. Callers whose tfvars still set it inside the
   # `container_registry` object (type = any) are unaffected; the key is now silently ignored.
 
-  network_rule_set {
-    default_action = try(var.container_registry.network_rule_set.default_action, "Deny")
-    dynamic "ip_rule" {
-      for_each = try(var.container_registry.network_rule_set.ip_rule, {})
-      content {
-        action   = ip_rule.value["action"]
-        ip_range = ip_rule.value["ip_range"]
+  dynamic "network_rule_set" {
+    for_each = try(var.container_registry.sku, "Premium") == "Premium" ? [1] : []
+    content {
+      default_action = try(var.container_registry.network_rule_set.default_action, "Deny")
+      dynamic "ip_rule" {
+        for_each = try(var.container_registry.network_rule_set.ip_rule, {})
+        content {
+          action   = ip_rule.value["action"]
+          ip_range = ip_rule.value["ip_range"]
+        }
       }
     }
   }
