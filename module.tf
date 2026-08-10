@@ -10,10 +10,15 @@ resource "azurerm_container_registry" "registry" {
   quarantine_policy_enabled     = try(var.container_registry.quarantine_policy_enabled, null)
   retention_policy_in_days      = try(var.container_registry.retention_policy_in_days, 90)
   zone_redundancy_enabled       = try(var.container_registry.zone_redundancy_enabled, true)
-  export_policy_enabled         = try(var.container_registry.export_policy_enabled, try(var.container_registry.public_network_access_enabled, false))
-  anonymous_pull_enabled        = try(var.container_registry.anonymous_pull_enabled, false)
-  data_endpoint_enabled         = try(var.container_registry.data_endpoint_enabled, null)
-  network_rule_bypass_option    = try(var.container_registry.network_rule_bypass_option, "AzureServices")
+  # Defaults to true (the provider's own default), independent of public_network_access_enabled.
+  # The real Azure API constraint is one-directional: export_policy_enabled = false REQUIRES
+  # public_network_access_enabled = false. It does NOT require the reverse (export_policy_enabled
+  # can be true, the default, while public access is disabled - that's a perfectly valid, and in
+  # fact the module's default, combination). See the precondition below for the actual constraint.
+  export_policy_enabled      = try(var.container_registry.export_policy_enabled, true)
+  anonymous_pull_enabled     = try(var.container_registry.anonymous_pull_enabled, false)
+  data_endpoint_enabled      = try(var.container_registry.data_endpoint_enabled, null)
+  network_rule_bypass_option = try(var.container_registry.network_rule_bypass_option, "AzureServices")
   # New in azurerm >= 5.0
   azuread_authentication_as_arm_policy_enabled = try(var.container_registry.azuread_authentication_as_arm_policy_enabled, true)
   network_rule_bypass_for_tasks_enabled        = try(var.container_registry.network_rule_bypass_for_tasks_enabled, false)
@@ -66,6 +71,13 @@ resource "azurerm_container_registry" "registry" {
 
   lifecycle {
     ignore_changes = [tags]
+    precondition {
+      # Real Azure API constraint: export_policy_enabled = false requires
+      # public_network_access_enabled = false. Ternary (not ||) for reliable short-circuit
+      # evaluation across Terraform versions - see compat-patterns.md Pattern 14.
+      condition     = try(var.container_registry.export_policy_enabled, true) == false ? try(var.container_registry.public_network_access_enabled, false) == false : true
+      error_message = "container_registry.export_policy_enabled = false requires container_registry.public_network_access_enabled = false."
+    }
   }
 }
 

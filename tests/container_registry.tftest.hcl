@@ -54,6 +54,10 @@ run "default_values" {
     condition     = azurerm_container_registry.registry.role_assignment_mode == "LegacyRegistryPermissions"
     error_message = "Default role_assignment_mode must be LegacyRegistryPermissions"
   }
+  assert {
+    condition     = azurerm_container_registry.registry.export_policy_enabled == true
+    error_message = "Default export_policy_enabled must be true (provider default), independent of public_network_access_enabled"
+  }
 }
 
 run "user_identity_created_by_default" {
@@ -337,36 +341,48 @@ run "basic_sku_no_network_rule_set" {
   }
 }
 
-run "export_policy_defaults_match_public_network" {
+run "export_policy_enabled_defaults_true_independent_of_public_network" {
   command = plan
   variables {
     container_registry = {
       resource_group = "rg-test"
-      # public_network_access_enabled defaults to false; export_policy_enabled must also
-      # default to false to avoid the API constraint that requires them to match.
+      # public_network_access_enabled defaults to false; export_policy_enabled defaults to
+      # true (the provider's own default) regardless - that combination is valid (the Azure
+      # constraint is one-directional: export_policy_enabled = false REQUIRES
+      # public_network_access_enabled = false, not the reverse).
+    }
+  }
+  assert {
+    condition     = azurerm_container_registry.registry.export_policy_enabled == true
+    error_message = "export_policy_enabled must default to true regardless of public_network_access_enabled"
+  }
+}
+
+run "export_policy_disabled_with_public_network_disabled" {
+  command = plan
+  variables {
+    container_registry = {
+      resource_group                = "rg-test"
+      public_network_access_enabled = false
+      export_policy_enabled         = false
     }
   }
   assert {
     condition     = azurerm_container_registry.registry.export_policy_enabled == false
-    error_message = "export_policy_enabled must default to false when public_network_access_enabled defaults to false"
+    error_message = "export_policy_enabled = false must be accepted when public_network_access_enabled = false"
   }
 }
 
-run "export_policy_opt_in_with_public_network_enabled" {
+run "export_policy_disabled_with_public_network_enabled_fails_precondition" {
   command = plan
   variables {
     container_registry = {
       resource_group                = "rg-test"
       public_network_access_enabled = true
-      export_policy_enabled         = true
+      export_policy_enabled         = false
     }
   }
-  assert {
-    condition     = azurerm_container_registry.registry.public_network_access_enabled == true
-    error_message = "public_network_access_enabled override must be applied"
-  }
-  assert {
-    condition     = azurerm_container_registry.registry.export_policy_enabled == true
-    error_message = "export_policy_enabled must accept an explicit true when public_network_access_enabled is also true"
-  }
+  expect_failures = [
+    azurerm_container_registry.registry,
+  ]
 }

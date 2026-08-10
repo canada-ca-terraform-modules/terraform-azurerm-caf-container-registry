@@ -22,10 +22,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `network_rule_set` block is now a `dynamic` block rendered only when `sku = "Premium"`
   (the default). Basic and Standard SKUs no longer receive a `network_rule_set` block that
   the Azure API would reject.
-- `export_policy_enabled` now defaults to `false` when `public_network_access_enabled` is
-  `false` (the module default), satisfying the Azure API constraint that the two flags must
-  match. Callers who set `public_network_access_enabled = true` will continue to receive
-  `export_policy_enabled = true` unless they override it.
 
 ### Fixed
 
@@ -47,6 +43,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Removed dead locals in `name.tf` (`container_registry-regex`, `env-regex_compliant`,
   `container_registry-userDefinedString-regex_compliant`, `group-regex_compliant`,
   `project-regex_compliant`) — never referenced anywhere in the module.
+- **Regression, introduced and reverted within this same upgrade:** an intermediate commit
+  changed `export_policy_enabled`'s default to `false` whenever `public_network_access_enabled`
+  defaulted to `false`, based on a misreading of the Azure API constraint as bidirectional. The
+  real constraint is one-directional — `export_policy_enabled = false` requires
+  `public_network_access_enabled = false`, not the reverse — so `export_policy_enabled = true`
+  (the provider default) together with `public_network_access_enabled = false` (the module
+  default) is a perfectly valid combination. A live upgrade probe against an already-deployed
+  registry caught this as an unwanted `~ update in-place` (`export_policy_enabled: true -> false`)
+  that would have altered real infrastructure behavior on every existing registry using module
+  defaults. Reverted `export_policy_enabled` to its original independent default (`true`); the
+  real constraint is now enforced with a `lifecycle.precondition` that fails plan with a clear
+  error message instead of silently drifting or surfacing an opaque Azure API error at apply time.
 
 ### Removed
 
@@ -66,6 +74,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `skip_service_principal_aad_check` on the `AcrPull` role assignment — helps avoid AAD
   replication-lag errors when the identity was created in the same apply. Default `false`
   (unchanged behaviour).
+- `lifecycle.precondition` on `azurerm_container_registry.registry` enforcing the real Azure
+  API constraint: `export_policy_enabled = false` requires `public_network_access_enabled = false`.
+  Fails `terraform plan` with a clear error message instead of an opaque Azure API error at apply
+  time (or, as happened in an earlier draft of this upgrade, silently changing the default).
 - `sensitive = true` added to `container-registry-object` — exposes a full resource object
   including `admin_password` when admin is enabled. `acr-pull-umi` is deliberately **not**
   marked sensitive: `azurerm_user_assigned_identity` only exposes non-secret metadata (name,
