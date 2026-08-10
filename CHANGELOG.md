@@ -39,6 +39,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   correctly-nested field.
 - **Bug:** invalid regex escape `[^\/]` in `locals.tf` (`\/` is not a valid Terraform/RE2 escape).
   Changed to `[^/]`.
+- **Bug:** an empty `georeplications = {}` object normalized to a single list entry (`[{}]`),
+  silently rendering one `georeplications` block full of defaults (`location = "canadaeast"`,
+  `global_endpoint_routing_enabled = true`) the caller never asked for. Empty objects are now
+  filtered out of the normalized list; an empty `georeplications = []` or `= {}` both correctly
+  produce zero blocks.
 - Removed dead locals in `name.tf` (`container_registry-regex`, `env-regex_compliant`,
   `container_registry-userDefinedString-regex_compliant`, `group-regex_compliant`,
   `project-regex_compliant`) — never referenced anywhere in the module.
@@ -61,12 +66,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `skip_service_principal_aad_check` on the `AcrPull` role assignment — helps avoid AAD
   replication-lag errors when the identity was created in the same apply. Default `false`
   (unchanged behaviour).
-- `sensitive = true` added to `container-registry-object` and `acr-pull-umi` outputs — both
-  expose full resource objects (`container-registry-object` includes `admin_password` when
-  admin is enabled).
+- `sensitive = true` added to `container-registry-object` — exposes a full resource object
+  including `admin_password` when admin is enabled. `acr-pull-umi` is deliberately **not**
+  marked sensitive: `azurerm_user_assigned_identity` only exposes non-secret metadata (name,
+  principal_id, client_id, tenant_id).
 - `providers.tf`, `.tflint.hcl`, `.gitignore`, `.gitattributes`, `tests/container_registry.tftest.hcl`,
   `tests/upgrade_compat.tftest.hcl`, `.github/workflows/{documentation,terraform-ci,release}.yml` —
   none of these existed before this upgrade.
+
+### Upgrade Notes / Known Drift
+
+The following azurerm >= 5.0 arguments are newly exposed with module-level defaults that match
+the *provider's own default for newly-created resources* — they do **not** necessarily match what
+an **existing** registry (deployed under the old provider, where these arguments didn't exist) is
+currently set to. Applying this upgrade against an existing registry may therefore show an
+in-place `~ update`, not just "no changes":
+
+- `azuread_authentication_as_arm_policy_enabled` (module default `true`) — some existing
+  registries may have relied on this being unset/off under azurerm < 5.0.
+- `role_assignment_mode` (module default `"LegacyRegistryPermissions"`) — an existing registry
+  already migrated to `"AbacRepositoryPermissions"` outside Terraform would be silently reverted
+  unless the caller explicitly sets `role_assignment_mode = "AbacRepositoryPermissions"` in
+  `container_registry`.
+- `network_rule_bypass_for_tasks_enabled` (module default `false`) — may conflict with an
+  existing registry's in-use ACR Tasks configuration.
+
+**Action for existing callers:** run `terraform plan` after upgrading and review any diff on
+these three arguments before applying; set them explicitly in `container_registry` to pin the
+current real value if the default doesn't match.
+
+### Known trade-offs
+
+- `.tflint.hcl` sets `call_module_type = "local"`, so `tflint` does not validate the remote
+  `private_endpoint` child module call. This is intentional (avoids requiring network access /
+  a full remote-module fetch in CI just to lint), but means tflint will not catch schema drift
+  in that child module — `terraform validate`/`terraform test` remain the source of truth for it.
 
 ### Known blockers
 

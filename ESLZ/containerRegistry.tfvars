@@ -1,5 +1,5 @@
-containerRegistry = {
-  resource_group                = "Project"
+containerRegistry = { # resource_group refers to a key in local.resource_groups_all - this example only
+  # resolves inside an ESLZ L2 blueprint's own terragrunt/L1 context, not in isolation.  resource_group                = "Project"
   sku                           = "Premium"
   admin_enabled                 = false
   public_network_access_enabled = false

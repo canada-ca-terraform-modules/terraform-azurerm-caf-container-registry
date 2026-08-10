@@ -172,6 +172,20 @@ run "georeplications_tags" {
   }
 }
 
+run "georeplications_empty_object_produces_no_block" {
+  command = plan
+  variables {
+    container_registry = {
+      resource_group  = "rg-test"
+      georeplications = {}
+    }
+  }
+  assert {
+    condition     = length(azurerm_container_registry.registry.georeplications) == 0
+    error_message = "An empty georeplications object must not render a default-filled block"
+  }
+}
+
 run "identity_block" {
   command = plan
   variables {
@@ -296,7 +310,21 @@ run "trust_policy_enabled_ignored" {
 }
 
 run "basic_sku_no_network_rule_set" {
-  command = plan
+  # command = apply (not plan): network_rule_set is Optional+Computed in the provider
+  # schema, so when the dynamic block emits zero entries its value stays unknown until
+  # apply - asserting on it under `command = plan` fails with "Unknown condition value".
+  command = apply
+
+  # azurerm_role_assignment.name[0].scope reads azurerm_container_registry.registry.id,
+  # which requires a realistic ARM-ID-formatted value to parse - mock_provider's default
+  # generated id fails ARM ID validation. Override it on this apply run.
+  override_resource {
+    target = azurerm_container_registry.registry
+    values = {
+      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.ContainerRegistry/registries/DevCCRtestRegistry"
+    }
+  }
+
   variables {
     container_registry = {
       resource_group = "rg-test"
@@ -321,5 +349,24 @@ run "export_policy_defaults_match_public_network" {
   assert {
     condition     = azurerm_container_registry.registry.export_policy_enabled == false
     error_message = "export_policy_enabled must default to false when public_network_access_enabled defaults to false"
+  }
+}
+
+run "export_policy_opt_in_with_public_network_enabled" {
+  command = plan
+  variables {
+    container_registry = {
+      resource_group                = "rg-test"
+      public_network_access_enabled = true
+      export_policy_enabled         = true
+    }
+  }
+  assert {
+    condition     = azurerm_container_registry.registry.public_network_access_enabled == true
+    error_message = "public_network_access_enabled override must be applied"
+  }
+  assert {
+    condition     = azurerm_container_registry.registry.export_policy_enabled == true
+    error_message = "export_policy_enabled must accept an explicit true when public_network_access_enabled is also true"
   }
 }

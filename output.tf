@@ -16,6 +16,7 @@ output "name" {
 
 output "acr-pull-umi" {
   description = "The UMI that can be used to pull images. Should be a list of 1 object when user_identity_enabled is set to true."
-  value       = azurerm_user_assigned_identity.identity
-  sensitive   = true
+  # Not sensitive: azurerm_user_assigned_identity exposes only non-secret metadata
+  # (name, principal_id, client_id, tenant_id) - none of it is a credential or secret.
+  value = azurerm_user_assigned_identity.identity
 }
