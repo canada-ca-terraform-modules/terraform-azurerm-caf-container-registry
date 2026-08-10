@@ -112,38 +112,52 @@ terraform fmt -recursive && terraform init -backend=false && terraform validate 
 
 | Name | Version |
 |------|---------|
-| terraform | >= 1.9 |
-| azurerm | ~> 5.0 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.9 |
+| <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | ~> 5.0 |
 
 ## Providers
 
-| Name    | Version |
-| ------- | ------- |
-| azurerm | ~> 5.0  |
+| Name | Version |
+|------|---------|
+| <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | ~> 5.0 |
+
+## Modules
+
+| Name | Source | Version |
+|------|--------|---------|
+| <a name="module_private_endpoint"></a> [private\_endpoint](#module\_private\_endpoint) | github.com/canada-ca-terraform-modules/terraform-azurerm-caf-private_endpoint.git | v1.2.0 |
+
+## Resources
+
+| Name | Type |
+|------|------|
+| [azurerm_container_registry.registry](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/container_registry) | resource |
+| [azurerm_role_assignment.name](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
+| [azurerm_user_assigned_identity.identity](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/user_assigned_identity) | resource |
 
 ## Inputs
 
-| Name                    | Description                                                   | Type          | Default           | Required |
-| ----------------------- | ------------------------------------------------------------- | ------------- | ----------------- | :------: |
-| container\_registry     | Object container all container registry parameters            | `any`         | `{}`              |    no    |
-| env                     | (Required) Env part of the name for the registry              | `string`      | n/a               |   yes    |
-| group                   | (Required) Group part of the name for the registry            | `string`      | n/a               |   yes    |
-| location                | Azure location where the registry will be located             | `string`      | `"canadacentral"` |    no    |
-| private\_dns\_zone\_ids | Object containing private DNS zone Ids for the subscription   | `any`         | `{}`              |    no    |
-| project                 | (Required) Project part of the name for the registry          | `string`      | n/a               |   yes    |
-| resource\_groups        | Resource group object containing all resource groups          | `any`         | `{}`              |    no    |
-| subnets                 | Object containing all subnets in the project                  | `any`         | `{}`              |    no    |
-| tags                    | Tags to be applied to the registry                            | `map(string)` | `{}`              |    no    |
-| userDefinedString       | (Required) UserDefinedString part of the name of the registry | `string`      | n/a               |   yes    |
+| Name | Description | Type | Default | Required |
+|------|-------------|------|---------|:--------:|
+| <a name="input_container_registry"></a> [container\_registry](#input\_container\_registry) | Object container all container registry parameters | `any` | `{}` | no |
+| <a name="input_env"></a> [env](#input\_env) | (Required) Env part of the name for the registry | `string` | n/a | yes |
+| <a name="input_group"></a> [group](#input\_group) | (Required) Group part of the name for the registry. Not used in the naming formula; retained because ESLZ/containerRegistry.tf passes it through as part of the L2 caller contract. | `string` | n/a | yes |
+| <a name="input_location"></a> [location](#input\_location) | Azure location where the registry will be located | `string` | `"canadacentral"` | no |
+| <a name="input_private_dns_zone_ids"></a> [private\_dns\_zone\_ids](#input\_private\_dns\_zone\_ids) | Object containing private DNS zone Ids for the subscription | `any` | `{}` | no |
+| <a name="input_project"></a> [project](#input\_project) | (Required) Project part of the name for the registry. Not used in the naming formula; retained because ESLZ/containerRegistry.tf passes it through as part of the L2 caller contract. | `string` | n/a | yes |
+| <a name="input_resource_groups"></a> [resource\_groups](#input\_resource\_groups) | Resource group object containing all resource groups | `any` | `{}` | no |
+| <a name="input_subnets"></a> [subnets](#input\_subnets) | Object containing all subnets in the project | `any` | `{}` | no |
+| <a name="input_tags"></a> [tags](#input\_tags) | Tags to be applied to the registry | `map(string)` | `{}` | no |
+| <a name="input_userDefinedString"></a> [userDefinedString](#input\_userDefinedString) | (Required) UserDefinedString part of the name of the registry | `string` | n/a | yes |
 
 ## Outputs
 
-| Name                      | Description                                               |
-| ------------------------- | ----------------------------------------------------------- |
-| container-registry-object | Returns the entire container registry object (`sensitive`) |
-| id                        | Returns the ID of the container registry                   |
-| name                      | Returns the name of the container registry                 |
-| acr-pull-umi              | The UMI used to pull images (`sensitive`)                   |
+| Name | Description |
+|------|-------------|
+| <a name="output_acr-pull-umi"></a> [acr-pull-umi](#output\_acr-pull-umi) | The UMI that can be used to pull images. Should be a list of 1 object when user\_identity\_enabled is set to true. |
+| <a name="output_container-registry-object"></a> [container-registry-object](#output\_container-registry-object) | Returns the entire container registry object |
+| <a name="output_id"></a> [id](#output\_id) | Returns the ID of the container registry |
+| <a name="output_name"></a> [name](#output\_name) | Returns the name of the container registry |
 <!-- END_TF_DOCS -->
 
 ## User Assigned Identity
