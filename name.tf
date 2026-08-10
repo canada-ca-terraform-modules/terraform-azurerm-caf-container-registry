@@ -1,8 +1,7 @@
 locals {
-  container_registry-regex                             = "/[^0-9a-z]/"
-  env-regex_compliant                                  = replace(var.env, local.container_registry-regex, "")
-  container_registry-userDefinedString-regex_compliant = replace(var.userDefinedString, local.container_registry-regex, "")
-  group-regex_compliant                                = replace(var.group, local.container_registry-regex, "")
-  project-regex_compliant                              = replace(var.project, local.container_registry-regex, "")
-  container_registry-name                              = "${var.env}CCR${var.userDefinedString}Registry"
+  # Dead locals removed: container_registry-regex, env-regex_compliant,
+  # container_registry-userDefinedString-regex_compliant, group-regex_compliant,
+  # project-regex_compliant were never referenced anywhere in the module.
+  container_registry-name = "${var.env}CCR${var.userDefinedString}Registry"
 }
+
