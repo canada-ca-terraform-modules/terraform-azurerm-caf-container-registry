@@ -1,5 +1,6 @@
 terraform {
   required_version = ">= 1.9"
+  # Wired to .github/workflows/live-test.yml (this PR).
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
